@@ -1,11 +1,11 @@
 import { useRfp, useSendRfp } from "@/hooks/use-rfps";
 import { useVendors } from "@/hooks/use-vendors";
-import { useProposals } from "@/hooks/use-proposals";
+import { useProposals, useRecommendation } from "@/hooks/use-proposals";
 import { useRoute } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "./Dashboard";
-import { Loader2, Send, CheckSquare, Square, Building2 } from "lucide-react";
+import { Loader2, Send, CheckSquare, Square, Building2, Lightbulb } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ export default function RfpDetails() {
   const { data: rfp, isLoading: rfpLoading } = useRfp(id);
   const { data: vendors } = useVendors();
   const { data: proposals } = useProposals(id);
+  const { data: recommendation, isLoading: recLoading } = useRecommendation(id);
   const { toast } = useToast();
   const sendMutation = useSendRfp();
 
@@ -122,6 +123,51 @@ export default function RfpDetails() {
               </pre>
             </CardContent>
           </Card>
+
+          {/* AI Recommendation */}
+          {proposals && proposals.length > 0 && (
+            <Card className="border-t-4 border-t-amber-400 bg-gradient-to-br from-amber-50 to-transparent">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Lightbulb className="w-5 h-5 text-amber-600" />
+                  <CardTitle>AI Recommendation</CardTitle>
+                </div>
+                <CardDescription>
+                  Based on all vendor proposals received
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {recLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="animate-spin text-primary" />
+                  </div>
+                ) : recommendation ? (
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium text-amber-900 mb-1">
+                        Recommended Vendor:
+                      </p>
+                      <p className="text-lg font-bold text-amber-700">
+                        {recommendation.recommendation}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-amber-900 mb-1">
+                        Reasoning:
+                      </p>
+                      <p className="text-sm text-amber-800 leading-relaxed">
+                        {recommendation.reasoning}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Unable to generate recommendation
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Sidebar: Vendor Selection */}

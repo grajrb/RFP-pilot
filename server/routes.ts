@@ -111,6 +111,56 @@ export async function registerRoutes(
     res.json(proposals);
   });
 
+  // Get AI recommendation based on all proposals for an RFP
+  app.get(api.proposals.getRecommendation.path, async (req, res) => {
+    try {
+      const rfpId = Number(req.params.id);
+      const rfp = await storage.getRfp(rfpId);
+
+      if (!rfp) {
+        return res.status(404).json({ message: "RFP not found" });
+      }
+
+      const allProposals = await storage.getProposals(rfpId);
+
+      if (allProposals.length === 0) {
+        return res.status(400).json({
+          message: "No proposals received for this RFP yet",
+        });
+      }
+
+      // Gather vendor info for each proposal
+      const proposalsWithVendors = await Promise.all(
+        allProposals.map(async (proposal) => {
+          const vendor = await storage.getVendor(proposal.vendorId);
+          return {
+            vendorName: vendor?.name || "Unknown Vendor",
+            score: proposal.score || 0,
+            analysis: {
+              analysis: proposal.aiAnalysis,
+              structuredResponse: proposal.structuredResponse,
+            },
+          };
+        })
+      );
+
+      // Call AI service to generate recommendation
+      const recommendation = await aiService.generateRecommendation(
+        rfp.title,
+        rfp.structuredRequirements,
+        proposalsWithVendors
+      );
+
+      res.json(recommendation);
+    } catch (err) {
+      console.error("Error generating recommendation:", err);
+      res.status(500).json({
+        message:
+          err instanceof Error ? err.message : "Failed to generate recommendation",
+      });
+    }
+  });
+
   // === Webhooks ===
   app.post(api.webhooks.email.path, async (req, res) => {
     try {

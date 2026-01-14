@@ -96,6 +96,17 @@ export const api = {
         200: z.array(z.custom<typeof proposals.$inferSelect>()),
       },
     },
+    getRecommendation: {
+      method: 'GET' as const,
+      path: '/api/rfps/:id/recommendation',
+      responses: {
+        200: z.object({
+          recommendation: z.string(),
+          reasoning: z.string(),
+        }),
+        404: errorSchemas.notFound,
+      },
+    },
   },
   webhooks: {
     email: {
