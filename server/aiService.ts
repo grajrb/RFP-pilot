@@ -1,21 +1,47 @@
-import OpenAI from "openai";
+/**
+ * Call OpenRouter API for AI operations
+ * Supports multiple models (gpt-3.5-turbo, gpt-4-turbo, claude, etc.)
+ */
+async function callOpenRouter(messages: any[], model: string = "openai/gpt-3.5-turbo") {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENROUTER_API_KEY is not set");
+  }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+      "HTTP-Referer": process.env.HTTP_REFERER || "http://localhost:5173",
+      "X-Title": "RFP Management System",
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0.7,
+      messages,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
 
 /**
  * Generate a structured RFP from raw natural language requirements.
- * Calls GPT-4 to convert unstructured text into JSON with title, summary, deliverables, etc.
+ * Calls OpenRouter to convert unstructured text into JSON with title, summary, deliverables, etc.
  */
 export async function generateStructuredRfp(
   rawRequirements: string
 ): Promise<{ title: string; structuredRequirements: any }> {
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      temperature: 0.7,
-      messages: [
+    const content = await callOpenRouter(
+      [
         {
           role: "system",
           content: `You are an expert at converting natural language RFP requirements into structured JSON.
@@ -35,10 +61,10 @@ Return ONLY valid JSON (no markdown, no explanation) with this exact structure:
           content: `Convert these requirements into structured JSON:\n\n${rawRequirements}`,
         },
       ],
-    });
+      "openai/gpt-3.5-turbo"
+    );
 
-    const content = response.choices[0].message.content || "{}";
-    const structured = JSON.parse(content);
+    const structured = JSON.parse(content || "{}");
 
     return {
       title: structured.title || "Untitled RFP",
@@ -63,10 +89,8 @@ export async function analyzeProposal(
   proposalContent: string
 ): Promise<{ score: number; analysis: string; structuredResponse: any }> {
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      temperature: 0.7,
-      messages: [
+    const content = await callOpenRouter(
+      [
         {
           role: "system",
           content: `You are an expert procurement analyst. Analyze this vendor proposal against the RFP requirements.
@@ -91,10 +115,10 @@ Scoring: 90-100 = Excellent match, 70-89 = Good match, 50-69 = Adequate match, <
           content: `RFP Requirements:\n${JSON.stringify(rfpContent, null, 2)}\n\nVendor Proposal:\n${proposalContent}`,
         },
       ],
-    });
+      "openai/gpt-3.5-turbo"
+    );
 
-    const content = response.choices[0].message.content || "{}";
-    const analysis = JSON.parse(content);
+    const analysis = JSON.parse(content || "{}");
 
     return {
       score: analysis.score || 0,
@@ -128,10 +152,8 @@ export async function generateRecommendation(
       )
       .join("\n");
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      temperature: 0.7,
-      messages: [
+    const content = await callOpenRouter(
+      [
         {
           role: "system",
           content: `You are a procurement advisor. Given vendor proposals for an RFP, provide a clear recommendation.
@@ -147,10 +169,10 @@ Return ONLY valid JSON (no markdown) with this structure:
           content: `RFP: ${rfpTitle}\nRequirements: ${JSON.stringify(rfpContent, null, 2)}\n\nVendor Proposals:\n${proposalsSummary}`,
         },
       ],
-    });
+      "openai/gpt-3.5-turbo"
+    );
 
-    const content = response.choices[0].message.content || "{}";
-    const recommendation = JSON.parse(content);
+    const recommendation = JSON.parse(content || "{}");
 
     return {
       recommendation: recommendation.recommendation || "Unable to determine",
