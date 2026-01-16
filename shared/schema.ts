@@ -1,39 +1,35 @@
-import { sqliteTable, text, integer, primaryKey } from "drizzle-orm/sqlite-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // === TABLE DEFINITIONS ===
 
-export const vendors = sqliteTable("vendors", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const vendors = pgTable("vendors", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull(),
   description: text("description"),
-  createdAt: text("created_at").default(new Date().toISOString()),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const rfps = sqliteTable("rfps", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const rfps = pgTable("rfps", {
+  id: serial("id").primaryKey(),
   title: text("title").notNull(),
   rawRequirements: text("raw_requirements").notNull(), // The user's natural language input
-  structuredRequirements: text("structured_requirements"), // AI-parsed JSON structure (stored as JSON string)
-  status: text("status").default("draft").notNull(), // 'draft', 'sent', 'closed'
-  createdAt: text("created_at").default(new Date().toISOString()),
+  structuredRequirements: jsonb("structured_requirements"), // AI-parsed JSON structure
+  status: text("status", { enum: ["draft", "sent", "closed"] }).default("draft").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const proposals = sqliteTable("proposals", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  rfpId: integer("rfp_id")
-    .notNull()
-    .references(() => rfps.id),
-  vendorId: integer("vendor_id")
-    .notNull()
-    .references(() => vendors.id),
+export const proposals = pgTable("proposals", {
+  id: serial("id").primaryKey(),
+  rfpId: integer("rfp_id").references(() => rfps.id).notNull(),
+  vendorId: integer("vendor_id").references(() => vendors.id).notNull(),
   rawResponse: text("raw_response").notNull(), // Email content
-  structuredResponse: text("structured_response"), // AI-parsed JSON (stored as JSON string)
+  structuredResponse: jsonb("structured_response"), // AI-parsed JSON
   score: integer("score"), // AI-assigned score (0-100)
   aiAnalysis: text("ai_analysis"), // AI reasoning
-  createdAt: text("created_at").default(new Date().toISOString()),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // === SCHEMAS ===

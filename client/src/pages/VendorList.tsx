@@ -1,4 +1,4 @@
-import { useVendors, useCreateVendor } from "@/hooks/use-vendors";
+import { useVendors, useCreateVendor, useUpdateVendor } from "@/hooks/use-vendors";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ type VendorFormValues = z.infer<typeof vendorFormSchema>;
 export default function VendorList() {
   const { data: vendors, isLoading } = useVendors();
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState<{ open: boolean; vendor?: any }>({ open: false });
 
   if (isLoading) {
     return <div className="space-y-4"><Skeleton className="h-10 w-32" /><Skeleton className="h-64 w-full" /></div>;
@@ -71,7 +72,7 @@ export default function VendorList() {
                     </td>
                     <td className="p-4 align-middle text-muted-foreground">{vendor.description || "-"}</td>
                     <td className="p-4 align-middle text-right">
-                      <Button variant="ghost" size="sm">Edit</Button>
+                      <Button variant="ghost" size="sm" onClick={() => setEditOpen({ open: true, vendor })}>Edit</Button>
                     </td>
                   </tr>
                 ))}
@@ -80,6 +81,13 @@ export default function VendorList() {
           </div>
         </CardContent>
       </Card>
+      {editOpen.vendor && (
+        <EditVendorDialog
+          open={editOpen.open}
+          vendor={editOpen.vendor}
+          onOpenChange={(o) => setEditOpen({ open: o, vendor: o ? editOpen.vendor : undefined })}
+        />)
+      }
     </div>
   );
 }
@@ -133,6 +141,76 @@ function AddVendorDialog({ open, onOpenChange }: { open: boolean, onOpenChange: 
             <Button type="submit" disabled={createMutation.isPending}>
               {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Vendor
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditVendorDialog({ open, onOpenChange, vendor }: { open: boolean; onOpenChange: (open: boolean) => void; vendor: { id: number; name: string; email: string; description?: string }} ) {
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<VendorFormValues>({
+    resolver: zodResolver(vendorFormSchema),
+    defaultValues: {
+      name: vendor.name,
+      email: vendor.email,
+      description: vendor.description || "",
+    },
+  });
+  const updateMutation = useUpdateVendor();
+  const { toast } = useToast();
+
+  const onSubmit = async (data: VendorFormValues) => {
+    try {
+      await updateMutation.mutateAsync({ id: vendor.id, updates: data });
+      toast({ title: "Saved", description: "Vendor updated successfully" });
+      reset();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Update error:", error);
+      toast({ 
+        title: "Error", 
+        description: (error as Error).message || "Failed to update vendor", 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Edit Vendor</DialogTitle>
+          <p className="text-sm text-muted-foreground mt-1">Update vendor details</p>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Company Name</label>
+            <Input {...register("name")} placeholder="Company name" />
+            {errors.name && <span className="text-xs text-destructive">{errors.name.message}</span>}
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Email Contact</label>
+            <Input {...register("email")} placeholder="email@example.com" type="email" />
+            {errors.email && <span className="text-xs text-destructive">{errors.email.message}</span>}
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Description</label>
+            <Input {...register("description")} placeholder="Vendor description" />
+            {errors.description && <span className="text-xs text-destructive">{errors.description.message}</span>}
+          </div>
+          <div className="flex justify-between pt-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={updateMutation.isPending}>
+              {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
             </Button>
           </div>
         </form>

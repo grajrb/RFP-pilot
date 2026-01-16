@@ -81,7 +81,7 @@ Frontend will be available at: `http://localhost:5173`
 
 1. **Open Application**
    - Navigate to `http://localhost:5173`
-   - Click on "Create RFP" or navigate to `/rfp/create`
+   - Click on "Create RFP" or navigate to `/rfps/create`
 
 2. **Enter Requirements**
    - In the text area, paste or type your requirements in plain English

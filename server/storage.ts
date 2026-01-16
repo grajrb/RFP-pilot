@@ -12,6 +12,7 @@ export interface IStorage {
   getVendor(id: number): Promise<Vendor | undefined>;
   getVendorByEmail(email: string): Promise<Vendor | undefined>;
   createVendor(vendor: InsertVendor): Promise<Vendor>;
+  updateVendor(id: number, updates: Partial<InsertVendor>): Promise<Vendor | undefined>;
 
   // RFPs
   getRfps(): Promise<Rfp[]>;
@@ -43,6 +44,11 @@ export class DatabaseStorage implements IStorage {
   async createVendor(vendor: InsertVendor): Promise<Vendor> {
     const [newVendor] = await db.insert(vendors).values(vendor).returning();
     return newVendor;
+  }
+
+  async updateVendor(id: number, updates: Partial<InsertVendor>): Promise<Vendor | undefined> {
+    const [updated] = await db.update(vendors).set(updates).where(eq(vendors.id, id)).returning();
+    return updated;
   }
 
   // RFPs

@@ -32,6 +32,15 @@ export const api = {
         400: errorSchemas.validation,
       },
     },
+    update: {
+      method: 'PUT' as const,
+      path: '/api/vendors/:id',
+      input: insertVendorSchema.partial(),
+      responses: {
+        200: z.custom<typeof vendors.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
   },
   rfps: {
     list: {

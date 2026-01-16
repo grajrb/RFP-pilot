@@ -1,19 +1,16 @@
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import Database from "better-sqlite3";
+import "dotenv/config";
+import { drizzle } from "drizzle-orm/node-postgres";
+import pg from "pg";
 import * as schema from "@shared/schema";
-import path from "path";
 
-// Use SQLite database file in the root directory
-const dbPath = process.env.DATABASE_URL || path.join(process.cwd(), "rfp.db");
+const { Pool } = pg;
 
-// Create or open the SQLite database
-const sqlite = new Database(dbPath);
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    "DATABASE_URL must be set. Did you forget to provision a database?",
+  );
+}
 
-// Enable foreign keys for SQLite
-sqlite.pragma("foreign_keys = ON");
-
-export const db = drizzle(sqlite, { schema });
-
-// Optional: Log database info
-console.log(`[DB] Connected to SQLite database at: ${dbPath}`);
+export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle(pool, { schema });
 

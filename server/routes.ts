@@ -33,6 +33,22 @@ export async function registerRoutes(
     }
   });
 
+  app.put(api.vendors.update.path, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const input = api.vendors.update.input.parse(req.body);
+      const existing = await storage.getVendor(id);
+      if (!existing) return res.status(404).json({ message: "Vendor not found" });
+      const updated = await storage.updateVendor(id, input);
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
   // === RFPs ===
   app.get(api.rfps.list.path, async (req, res) => {
     const rfps = await storage.getRfps();
