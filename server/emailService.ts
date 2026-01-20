@@ -25,9 +25,12 @@ function getTransporter(): nodemailer.Transporter {
   const user = process.env.EMAIL_SMTP_USER;
   const pass = process.env.EMAIL_SMTP_PASS;
 
-  if (!host || !user || !pass) {
-    console.warn(
-      "[Email Service] Missing SMTP configuration. Emails will be logged to console only."
+  // Use demo mode for development/demo
+  const isDemoMode = process.env.EMAIL_DEMO_MODE === "true" || !host || !user || !pass;
+  
+  if (isDemoMode) {
+    console.log(
+      "[Email Service] 🎬 DEMO MODE: Emails will be logged to console only."
     );
     // Return a mock transporter for development
     return nodemailer.createTransport({
@@ -56,6 +59,7 @@ export async function sendRfpEmail(
 ): Promise<void> {
   const transporter = getTransporter();
   const fromAddress = process.env.EMAIL_FROM || "noreply@rfp-system.local";
+  const isDemoMode = process.env.EMAIL_DEMO_MODE === "true" || !process.env.EMAIL_SMTP_HOST;
 
   for (const vendor of vendors) {
     try {
@@ -73,15 +77,29 @@ export async function sendRfpEmail(
         },
       });
 
-      console.log(
-        `[Email Service] RFP sent to ${vendor.email}, Message ID: ${result.messageId}`
-      );
+      if (isDemoMode) {
+        console.log(
+          `\n${"=".repeat(60)}\n` +
+          `[Email Service] 📧 DEMO: Email to ${vendor.email}\n` +
+          `Subject: Request for Proposal: ${rfpTitle}\n` +
+          `${"=".repeat(60)}\n` +
+          `${stripHtml(emailBody)}\n` +
+          `${"=".repeat(60)}\n`
+        );
+      } else {
+        console.log(
+          `[Email Service] ✅ RFP sent to ${vendor.email}, Message ID: ${result.messageId}`
+        );
+      }
     } catch (error) {
       console.error(
-        `[Email Service] Failed to send RFP to ${vendor.email}:`,
+        `[Email Service] ❌ Failed to send RFP to ${vendor.email}:`,
         error
       );
-      throw error;
+      // Don't throw in demo mode, just log
+      if (!isDemoMode) {
+        throw error;
+      }
     }
   }
 }

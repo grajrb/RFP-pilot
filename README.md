@@ -1,5 +1,20 @@
 # RFP Management System - Project Complete ✅
 
+## 🎥 Demo Video
+
+**[Watch the Complete Demo Video Here](#)** *(Upload your video and add link)*
+
+The 5-10 minute demo demonstrates:
+1. Creating an RFP from natural language with AI structuring
+2. Managing vendors and sending RFPs via email
+3. Receiving vendor responses with automatic AI parsing
+4. Comparing proposals and viewing AI recommendations
+5. Code walkthrough highlighting key architecture decisions
+
+**Recording Guide:** See [DEMO_VIDEO_GUIDE.md](DEMO_VIDEO_GUIDE.md) for step-by-step instructions.
+
+---
+
 ## What You Have
 
 A **complete, production-quality AI-powered RFP Management System** that demonstrates:
